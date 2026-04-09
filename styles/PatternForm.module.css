@@ -1,0 +1,33 @@
+.ingredient {
+    border: solid 2px rgba(211, 211, 211, 0.5);
+    border-radius: 1em;
+    padding: 1px;
+    margin-bottom: 10px;
+}
+
+.instruction {
+    border: solid 2px rgba(211, 211, 211, 0.5);
+    border-radius: 1em;
+    padding: 1px;
+    margin-bottom: 10px;
+}
+
+.remove {
+    background-color: red;
+    border-radius: 50%;
+    float: right;
+    width: 30px;
+    height: 30px;
+    margin-top: 10px;
+    margin-right: 10px;
+}
+
+.spec {
+    padding: 30px;
+}
+
+.label {
+    display: inline-block;
+    width: 85%;
+    margin: 5px;
+}
