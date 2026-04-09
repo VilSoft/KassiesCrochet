@@ -90,9 +90,8 @@ function AddPatternForm() {
     }
 
     // Automatically change textarea height
-    const handleInstrInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-
-        const textarea = e.target as HTMLTextAreaElement;
+    const handleInstrInput = (e: React.InputEvent<HTMLTextAreaElement>) => {
+        const textarea = e.currentTarget;
         textarea.style.height = "auto";
         textarea.style.height = `${textarea.scrollHeight}px`;
     }
@@ -227,7 +226,7 @@ function AddPatternForm() {
                                                     {...form.register(`instructions.${i}.value` as const)}
                                                     className="block w-full !resize-none overflow-hidden rounded-md border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-transparent "
                                                     rows={1}
-                                                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInstrInput(e)}
+                                                    onInput={(e: React.InputEvent<HTMLTextAreaElement>) => handleInstrInput(e)}
                                                     placeholder=''
                                                     value={form.watch(`instructions.${i}.value`)}
                                                 />
