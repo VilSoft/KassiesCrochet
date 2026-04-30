@@ -1,81 +1,130 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
-import { pattern } from '@/interfaces';
-import { useDispatch, useSelector } from 'react-redux';
-import { AppDispatch } from '@/redux/store';
-import { setPatterns, getPatterns } from '@/redux/features/patternSlice';
-import { WhichOpen } from './enums';
-import { 
-    getSearchParam, 
-    getAddPatternIsOpen, 
-    getIsPatternOpen, 
-    setIsPatternOpen 
-} from '@/redux/features/patternListSlice';
-import Modal from './Modal';
+import { pattern } from '@/interfaces'
+import { useDispatch, useSelector } from 'react-redux'
+import { AppDispatch } from '@/redux/store'
+import { setPatterns, getPatterns } from '@/redux/features/patternSlice'
+import {
+    getSearchParam,
+    getAddPatternIsOpen,
+    getIsPatternOpen,
+    getAddPdfPatternIsOpen,
+    setIsPatternOpen,
+    setAddPatternIsOpen,
+} from '@/redux/features/patternListSlice'
+import { WhichOpen } from './enums'
+import Modal from './Modal'
 import AddPatternForm from './AddPatternForm'
-import ShowPattern from './ShowPattern';
-import style from '@/styles/List.module.css'
-import Image from 'next/image';
+import AddPdfPatternForm from './AddPdfPatternForm'
+import ShowPattern from './ShowPattern'
+import Image from 'next/image'
+import { Button } from './ui/button'
+import { FileIcon } from 'lucide-react'
 
-function Patterns() {
-    const dispatch = useDispatch<AppDispatch>();
-    const patterns = useSelector(getPatterns);
-    const search = useSelector(getSearchParam);
-    const isOpen = useSelector(getAddPatternIsOpen);
-    const isPatternOpen = useSelector(getIsPatternOpen);
+export default function Patterns() {
+    const dispatch = useDispatch<AppDispatch>()
+    const patterns = useSelector(getPatterns)
+    const search = useSelector(getSearchParam)
+    const isOpen = useSelector(getAddPatternIsOpen)
+    const isPatternOpen = useSelector(getIsPatternOpen)
+    const isPdfOpen = useSelector(getAddPdfPatternIsOpen)
 
-    const [gotPatterns, setGotPatterns] = useState<boolean>(false);
-    const [openPattern, setOpenPattern] = useState<pattern>(patterns[0]);
+    const [loaded, setLoaded] = useState(false)
+    const [openPattern, setOpenPattern] = useState<pattern | undefined>(undefined)
 
-    const handleOpenPattern = (r: pattern) => {
-        setOpenPattern(r);
-        dispatch(setIsPatternOpen(true));
+    const handleOpenPattern = (p: pattern) => {
+        setOpenPattern(p)
+        dispatch(setIsPatternOpen(true))
     }
 
-    // const handleSearch = (value: string) => {
-    //     setSearch(value);
-    // }
-
-    // Get the patterns and conversions from the database
     useEffect(() => {
-        if (gotPatterns) return;
-
-        const getPatterns = async () => {
+        if (loaded) return
+        const fetchPatterns = async () => {
             const res = await fetch('/api/pattern', {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'Content-Type': 'application/json' },
             })
-            res.json().then((data) => {
-                dispatch(setPatterns(data));
-                setGotPatterns(true);
-            })
+            const data = await res.json()
+            dispatch(setPatterns(data))
+            setLoaded(true)
         }
+        fetchPatterns()
+    }, [loaded, dispatch])
 
-        getPatterns();
-    }, [gotPatterns, dispatch])
+    const filtered = patterns.filter((p) =>
+        p.name.toLowerCase().includes(search.toLowerCase())
+    )
 
     return (
-        <div className="flex justify-center items-start h-screen p-4">
-            <div className='w-[10px]'></div>
-            <div className={style.container}>
-                {patterns.filter((r: any) => r.name.includes(search)).map((pattern: any) => (
-                    <li key={pattern._id} className={`${style.list} flex justify-start items-start`} onClick={() => handleOpenPattern(pattern)}>
-                        {pattern.image !== "" && <Image width={0} height={0} sizes='100vh' src={`/api/uploads/${pattern.image}`} alt={pattern.image} className={style.image} />}
-                        &nbsp;{pattern.name}
-                    </li>
-                ))}
+        <div className="flex justify-center px-4 py-6">
+            <div className="w-full max-w-xl">
+                {/* Loading skeletons */}
+                {!loaded && (
+                    <div className="space-y-3">
+                        {[1, 2, 3].map((i) => (
+                            <div
+                                key={i}
+                                className="h-16 rounded-xl border border-border bg-muted animate-pulse"
+                            />
+                        ))}
+                    </div>
+                )}
+
+                {/* Empty state */}
+                {loaded && filtered.length === 0 && (
+                    <div className="flex flex-col items-center gap-3 py-20 text-muted-foreground">
+                        <p className="text-base font-medium">
+                            {search ? 'No patterns match your search.' : 'No patterns yet.'}
+                        </p>
+                        {!search && (
+                            <Button onClick={() => dispatch(setAddPatternIsOpen(true))}>
+                                Add your first pattern
+                            </Button>
+                        )}
+                    </div>
+                )}
+
+                {/* Pattern list */}
+                {loaded && filtered.length > 0 && (
+                    <ul className="space-y-2">
+                        {filtered.map((p, idx) => (
+                            <li
+                                key={p._id}
+                                onClick={() => handleOpenPattern(p)}
+                                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-card cursor-pointer transition-all duration-150 hover:shadow-md hover:border-primary/30 hover:bg-accent animate-in fade-in-0 slide-in-from-bottom-2"
+                                style={{ animationDelay: `${idx * 40}ms` }}
+                            >
+                                {p.image && (
+                                    <Image
+                                        width={48}
+                                        height={48}
+                                        src={`/api/uploads/${p.image}`}
+                                        alt={p.name}
+                                        className="h-12 w-12 rounded-lg object-cover shrink-0"
+                                    />
+                                )}
+                                {p.pdfFile && !p.image && (
+                                    <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                        <FileIcon className="h-6 w-6 text-muted-foreground" />
+                                    </div>
+                                )}
+                                <span className="text-sm font-medium">{p.name}</span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+
+                <Modal title="Add a Pattern" isOpen={isOpen} type={WhichOpen.add}>
+                    <AddPatternForm />
+                </Modal>
+                <Modal title="Add a PDF Pattern" isOpen={isPdfOpen} type={WhichOpen.addPdf}>
+                    <AddPdfPatternForm />
+                </Modal>
+                <Modal title={openPattern?.name ?? ''} isOpen={isPatternOpen} type={WhichOpen.show}>
+                    {openPattern && <ShowPattern key={openPattern._id} pattern={openPattern} />}
+                </Modal>
             </div>
-            <Modal title="Add a Pattern" isOpen={isOpen} type={WhichOpen.add}>
-                <AddPatternForm />
-            </Modal>
-            <Modal title={openPattern?.name} isOpen={isPatternOpen} type={WhichOpen.show}>
-                <ShowPattern pattern={openPattern} />
-            </Modal>
         </div>
     )
 }
-
-export default Patterns

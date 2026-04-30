@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Kassie's Patterns",
   description: "Patterns for Kassie Baking",
-  icons: {icon: '/favicon.ico'}
+  icons: {icon: '/crochet.ico'}
 };
 
 export default function RootLayout({

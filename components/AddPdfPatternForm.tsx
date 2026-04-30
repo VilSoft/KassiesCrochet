@@ -2,98 +2,72 @@
 import React, { useState } from 'react'
 import { pattern } from '@/interfaces'
 import { addPattern } from '@/redux/features/patternSlice'
-import { setAddPatternIsOpen } from '@/redux/features/patternListSlice'
+import { setAddPdfPatternIsOpen } from '@/redux/features/patternListSlice'
 import { useDispatch } from 'react-redux'
 import { AppDispatch } from '@/redux/store'
-import { formSchema } from '@/interfaces/zPatterns'
-import { useForm, useFieldArray, FieldErrors } from 'react-hook-form'
+import { pdfFormSchema } from '@/interfaces/zPatterns'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertCircle, ImageIcon } from 'lucide-react'
-import SuppliesFieldArray from './SuppliesFieldArray'
-import SectionsFieldArray from './SectionsFieldArray'
+import { AlertCircle, FileIcon, ImageIcon } from 'lucide-react'
 
-export default function AddPatternForm() {
+export default function AddPdfPatternForm() {
     const dispatch = useDispatch<AppDispatch>()
     const [error, setError] = useState(0)
+    const [pdfFile, setPdfFile] = useState<File | null>(null)
+    const [pdfError, setPdfError] = useState(false)
     const [finalImageFile, setFinalImageFile] = useState<File | null>(null)
-    // key: "sectionIdx_instrIdx" → new files to upload
-    const [instrFiles, setInstrFiles] = useState<Map<string, File[]>>(new Map())
 
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            name: '',
-            supplies: [{ name: '' }],
-            sections: [{ title: '', instructions: [{ value: '', images: [] }] }],
-        },
+    const form = useForm<z.infer<typeof pdfFormSchema>>({
+        resolver: zodResolver(pdfFormSchema),
+        defaultValues: { name: '' },
     })
 
-    const { fields: supplyFields } = useFieldArray({ control: form.control, name: 'supplies' })
-    const { fields: sectionFields } = useFieldArray({ control: form.control, name: 'sections' })
+    const onSubmit = async (values: z.infer<typeof pdfFormSchema>) => {
+        if (!pdfFile) {
+            setPdfError(true)
+            return
+        }
+        setPdfError(false)
 
-    const handleNewInstrFiles = (sectionIdx: number, instrIdx: number, files: File[]) => {
-        const key = `${sectionIdx}_${instrIdx}`
-        setInstrFiles((prev) => {
-            const next = new Map(prev)
-            next.set(key, [...(next.get(key) ?? []), ...files])
-            return next
-        })
-    }
-
-    const onSubmit = async (values: z.infer<typeof formSchema>) => {
         const patternObj: pattern = {
             _id: '',
             name: values.name,
-            supplies: values.supplies,
-            sections: values.sections.map((sec) => ({
-                title: sec.title,
-                instructions: sec.instructions.map((i) => ({ value: i.value, images: [] })),
-            })),
-            image: '',
+            supplies: [],
+            sections: [],
+            pdfFile: '',
         }
 
         const formData = new FormData()
         formData.append('action', 'add')
+        formData.append('pdfFile', pdfFile)
         if (finalImageFile) formData.append('finalImage', finalImageFile)
-
-        // Append per-instruction images with key instrImage_S_N_M
-        instrFiles.forEach((files, key) => {
-            const [s, n] = key.split('_').map(Number)
-            files.forEach((file, m) => {
-                formData.append(`instrImage_${s}_${n}_${m}`, file)
-            })
-        })
-
         formData.append('pattern', JSON.stringify(patternObj))
 
         const res = await fetch('/api/pattern', { method: 'POST', body: formData })
         if (res.status === 201) {
             const data = await res.json()
             dispatch(addPattern(data.data))
-            dispatch(setAddPatternIsOpen(false))
+            dispatch(setAddPdfPatternIsOpen(false))
             form.reset()
+            setPdfFile(null)
+            setFinalImageFile(null)
         } else {
             setError((e) => {
                 const next = e + 1
-                if (next >= 3) setTimeout(() => dispatch(setAddPatternIsOpen(false)), 1000)
+                if (next >= 3) setTimeout(() => dispatch(setAddPdfPatternIsOpen(false)), 1000)
                 return next
             })
         }
     }
 
-    const onError = (errors: FieldErrors<z.infer<typeof formSchema>>) => {
-        console.log('Validation errors:', errors)
-    }
-
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-6 pt-2">
-                {/* Pattern name */}
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-2">
                 <FormField
                     control={form.control}
                     name="name"
@@ -101,7 +75,7 @@ export default function AddPatternForm() {
                         <FormItem>
                             <FormLabel>Pattern Name</FormLabel>
                             <FormControl>
-                                <Input placeholder="e.g. Chunky Beanie" {...field} />
+                                <Input placeholder="e.g. Granny Square Blanket" {...field} />
                             </FormControl>
                             {form.formState.errors.name && (
                                 <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>
@@ -110,9 +84,32 @@ export default function AddPatternForm() {
                     )}
                 />
 
-                {/* Final photo */}
                 <div>
-                    <p className="text-sm font-medium mb-1.5">Final Photo</p>
+                    <p className="text-sm font-medium mb-1.5">PDF File</p>
+                    <label className="flex items-center gap-2 cursor-pointer w-fit">
+                        <input
+                            type="file"
+                            accept=".pdf"
+                            className="hidden"
+                            onChange={(e) => {
+                                setPdfFile(e.target.files?.[0] ?? null)
+                                setPdfError(false)
+                            }}
+                        />
+                        <Button type="button" size="sm" variant="outline" asChild>
+                            <span>
+                                <FileIcon className="h-3.5 w-3.5 mr-1" />
+                                {pdfFile ? pdfFile.name : 'Choose PDF'}
+                            </span>
+                        </Button>
+                    </label>
+                    {pdfError && (
+                        <p className="text-xs text-destructive mt-1">Please choose a PDF file</p>
+                    )}
+                </div>
+
+                <div>
+                    <p className="text-sm font-medium mb-1.5">Cover Photo <span className="text-muted-foreground font-normal">(optional)</span></p>
                     <label className="flex items-center gap-2 cursor-pointer w-fit">
                         <input
                             type="file"
@@ -127,20 +124,7 @@ export default function AddPatternForm() {
                             </span>
                         </Button>
                     </label>
-                    {finalImageFile && (
-                        <p className="text-xs text-muted-foreground mt-1">{finalImageFile.name}</p>
-                    )}
                 </div>
-
-                {/* Supplies */}
-                <SuppliesFieldArray form={form} fields={supplyFields} />
-
-                {/* Sections */}
-                <SectionsFieldArray
-                    form={form}
-                    sectionFields={sectionFields}
-                    onNewFiles={handleNewInstrFiles}
-                />
 
                 {error > 0 && (
                     <Alert variant="destructive">
@@ -153,10 +137,10 @@ export default function AddPatternForm() {
                 )}
 
                 <div className="flex justify-end gap-2 pt-2">
-                    <Button type="button" variant="ghost" onClick={() => dispatch(setAddPatternIsOpen(false))}>
+                    <Button type="button" variant="ghost" onClick={() => dispatch(setAddPdfPatternIsOpen(false))}>
                         Cancel
                     </Button>
-                    <Button type="submit">Save Pattern</Button>
+                    <Button type="submit">Save PDF Pattern</Button>
                 </div>
             </form>
         </Form>

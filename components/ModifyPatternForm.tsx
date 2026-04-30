@@ -1,281 +1,366 @@
 "use client"
 import React, { useState } from 'react'
-import { supply, pattern, patternForm } from '@/interfaces'
-import style from '@/styles/PatternForm.module.css'
+import { pattern, isPdfPattern } from '@/interfaces'
 import { modifyPattern } from '@/redux/features/patternSlice'
-import { useDispatch } from 'react-redux';
-import { AppDispatch } from '@/redux/store';
-import { formSchema, instructions } from '@/interfaces/zPatterns'
-import { useForm, FieldErrors, useFieldArray } from 'react-hook-form'
-import { Button } from "@/components/ui/button"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from "@/components/ui/form"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"  
-import { Input } from '@/components/ui/input'
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle } from 'lucide-react'
-import { z } from "zod"
+import { useDispatch } from 'react-redux'
+import { AppDispatch } from '@/redux/store'
+import { formSchema, pdfFormSchema } from '@/interfaces/zPatterns'
+import { useForm, useFieldArray, FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import * as _ from 'lodash'
+import { z } from 'zod'
+import { Button } from '@/components/ui/button'
+import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertCircle, ImageIcon, FileIcon } from 'lucide-react'
+import Image from 'next/image'
+import SuppliesFieldArray from './SuppliesFieldArray'
+import SectionsFieldArray from './SectionsFieldArray'
 
-interface AddProps {
-    setModMode: React.Dispatch<React.SetStateAction<boolean>>,
-    setPattern: React.Dispatch<React.SetStateAction<pattern>>,
+interface Props {
+    setModMode: React.Dispatch<React.SetStateAction<boolean>>
+    setPattern: React.Dispatch<React.SetStateAction<pattern>>
     pattern: pattern
 }
 
-const errMsgs: string[] = ["An error has occured on the server", "Too many errors occuring, try again later"]
+function ModifyPdfPatternForm({ setModMode, pattern, setPattern }: Props) {
+    const dispatch = useDispatch<AppDispatch>()
+    const [error, setError] = useState(0)
+    const [newPdfFile, setNewPdfFile] = useState<File | null>(null)
+    const [finalImageFile, setFinalImageFile] = useState<File | null>(null)
 
-function AddPatternForm({ setModMode, pattern, setPattern } : AddProps) {
-    const dispatch = useDispatch<AppDispatch>();
-    const [error, setError] = useState<number>(0);
-    const [forceRefresh, setForceRefresh] = useState<boolean>(false);
-    const [images, setImages] = useState<File | null>(null);
-
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            name: pattern.name,
-            supplies: pattern.supplies.map((i) => {return { name: i.name }}),
-            instructions: pattern.instructions.map((i) => {return { value: i }}),
-            image: []
-        }
+    const form = useForm<z.infer<typeof pdfFormSchema>>({
+        resolver: zodResolver(pdfFormSchema),
+        defaultValues: { name: pattern.name },
     })
-    const control = form.control;
 
-    // Set up watchers
-    const { fields: supplyFields } = useFieldArray({
-        control,
-        name: "supplies"
-    });
-    const { fields: instructionFields } = useFieldArray({
-        control,
-        name: "instructions"
-    });
-
-    // Array controls
-    const addSupply = () => {
-        const currentSupplies = form.getValues("supplies") || [];
-        const newSupply = { name: "" }
-        form.setValue("supplies", [...currentSupplies, newSupply])
-    }
-    const removeSupply = (index: number) => {
-        const currentSupplies = form.getValues("supplies");
-        const updatedSupplies = currentSupplies.filter((_, i) => i !== index);
-        form.setValue("supplies", updatedSupplies);
-    }
-    const addInstruction = () => {
-        const currentInstructions = form.getValues("instructions") || [];
-        const newInstructions = {value: ""}
-        form.setValue("instructions", [...currentInstructions, newInstructions])
-
-        // Make sure none of the textareas gets resized
-        setTimeout(() => {
-            document.querySelectorAll("textarea").forEach((textarea) => {
-                textarea.style.height = "auto";
-                textarea.style.height = `${textarea.scrollHeight}px`;
-            })
-        })
-    }
-    const removeInstruction = (index: number) => {
-        const currentInstructions = form.getValues("instructions");
-        const updatedInstructions = currentInstructions.filter((_, i) => i !== index);
-        form.setValue("instructions", updatedInstructions);
-    }
-
-    // Automatically change textarea height
-    const handleInstrInput = (e: React.InputEvent<HTMLTextAreaElement>) => {
-        const textarea = e.currentTarget;
-        textarea.style.height = "auto";
-        textarea.style.height = `${textarea.scrollHeight}px`;
-    }
-
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setImages(e.target.files[0]);
-        }
-    }
-
-    const onSubmit = async (values: z.infer<typeof formSchema>) => {
-        // Convert from zod pattern object to pattern interface
-        const instructs: string[] = values.instructions.map((ins: z.infer<typeof instructions>) => ins.value);
-        const modPattern: pattern = {
-            _id: pattern._id,
+    const onSubmit = async (values: z.infer<typeof pdfFormSchema>) => {
+        const modPatternObj: pattern = {
+            ...pattern,
             name: values.name,
-            supplies: values.supplies,
-            instructions: instructs,
-            image: pattern.image
         }
-        const formData = new FormData();
-        formData.append('action', 'modify');
 
-        // _.forEach(images, (image, index: number) => {
-        //     if (image instanceof File) {
-        //         formData.append("image", image);
-        //         const now: Date = new Date()
-        //         const dateAsString = `${now.getMonth() + 1}_${now.getDate()}_${now.getFullYear()}-${now.getHours()}-${now.getMinutes()}-${now.getSeconds()}`
-        //         modPattern.image[index] = modPattern.name.replace(' ', '_') + '-' + dateAsString + '-' + index + image.name.slice(image.name.indexOf('.'));
-        //     }
-        // })
+        const formData = new FormData()
+        formData.append('action', 'modify')
+        if (newPdfFile) {
+            formData.append('pdfFile', newPdfFile)
+            if (pattern.pdfFile) formData.append('oldPdfFile', pattern.pdfFile)
+        }
+        if (finalImageFile) {
+            formData.append('finalImage', finalImageFile)
+            if (pattern.image) formData.append('oldFinalImage', pattern.image)
+        }
+        formData.append('pattern', JSON.stringify(modPatternObj))
 
-        formData.append("pattern", JSON.stringify(modPattern));
-        // formData.append("oldImageLocaltion", pattern.image);
-        formData.append("oldImageLocaltion", "tmp");
-
-        // Send to database
-        await fetch('/api/pattern', {
-            method: 'POST',
-            body: formData
-        }).then(async (res) => {
-            // Error handling and closing dialog
-            if (res.status === 201) {
-                const data = await res.json();
-                // TODO
-                dispatch(modifyPattern(data.data));
-                setPattern(data.data);
-                setModMode(false);
-            } else {
-                setError(error + 1);
-                if (error >= 2) {
-                    setTimeout(() => {
-                        setModMode(false);
-                    }, 1000)
-                }
-            }
-        })
-    }
-
-    const onError = (errors: FieldErrors<z.infer<typeof formSchema>>) => {
-        console.log("Validation errors: ", errors)
+        const res = await fetch('/api/pattern', { method: 'POST', body: formData })
+        if (res.status === 201) {
+            const data = await res.json()
+            dispatch(modifyPattern(data.data))
+            setPattern(data.data)
+            setModMode(false)
+        } else {
+            setError((e) => {
+                const next = e + 1
+                if (next >= 3) setTimeout(() => setModMode(false), 1000)
+                return next
+            })
+        }
     }
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit, onError)}>
-                <FormField 
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-2">
+                <FormField
                     control={form.control}
                     name="name"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Da Yummy's Name</FormLabel>
+                            <FormLabel>Pattern Name</FormLabel>
                             <FormControl>
-                                <Input placeholder={""} {...field} />
+                                <Input {...field} />
                             </FormControl>
                             {form.formState.errors.name && (
-                                <p className="mt-1 text-sm text-red-500">{form.formState.errors.name.message}</p>
+                                <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>
                             )}
                         </FormItem>
                     )}
-                /><br />
-                <FormField 
-                    control={form.control}
-                    name="supplies"
-                    render={({}) => (
-                        <div>
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-lg font-medium">Supplies</h3>
-                                <Button type="button" onClick={addSupply} className="ml-4">Add</Button>
-                            </div>
-                            {supplyFields.map((field, i) => (
-                                <div key={field.id} className={style.ingredient}>
-                                    <Button type="button" onClick={() => removeSupply(i)} className={style.remove}>-</Button>
-                                    <div className={style.spec}>
-                                        <FormItem>
-                                            <FormControl>
-                                                <label>Name
-                                                    <Input {...form.register(`supplies.${i}.name` as const, {
-                                                        onChange: (e) => {
-                                                            form.setValue(`supplies.${i}.name`, e.target.value.toLowerCase())
-                                                        }
-                                                    })} />
-                                                </label>
-                                            </FormControl>
-                                            {form.formState.errors.supplies?.[i]?.name && (
-                                                <p className="mt-1 text-sm text-red-500">{form.formState.errors.supplies?.[i]?.name.message}</p>
-                                            )}
-                                        </FormItem>
-                                    </div>
-                                </div>
-                            ))}
-                            {supplyFields.length >= 2 ? 
-                                <Button type="button" onClick={addSupply} className="w-full">Add Supply</Button> : <></>
-                            }
-                        </div>
-                    )}
-                /><br />
-                <FormField 
-                    control={form.control}
-                    name="instructions"
-                    render={({}) => (
-                        <div>
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-lg font-medium">Instructions</h3>
-                                <Button type="button" onClick={addInstruction} className="ml-4">Add</Button>
-                            </div>
-                            {instructionFields.map((field, i) => (
-                                <div key={field.id} className={style.instruction}>
-                                    <Button type="button" onClick={() => removeInstruction(i)} className={style.remove}>-</Button>
-                                    <FormItem >
-                                        <FormControl>
-                                            <label className={style.label}>{i + 1}:
-                                                <textarea 
-                                                    {...form.register(`instructions.${i}.value` as const)}
-                                                    className="block w-full !resize-none overflow-hidden rounded-md border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-transparent "
-                                                    rows={1}
-                                                    onInput={(e: React.InputEvent<HTMLTextAreaElement>) => handleInstrInput(e)}
-                                                    placeholder=''
-                                                    value={form.watch(`instructions.${i}.value`)}
-                                                />
-                                            </label>
-                                        </FormControl>
-                                        {form.formState.errors.instructions?.[i]?.value && (
-                                            <p className="mt-1 text-sm text-red-500">{form.formState.errors.instructions?.[i]?.value.message}</p>
-                                        )}
-                                    </FormItem>
-                                </div>
-                            ))}
-                            {instructionFields.length >= 2 ? 
-                                <Button type="button" onClick={addInstruction} className="w-full">Add Instruction</Button> : <></>
-                            }
-                        </div>
-                    )}
-                /><br />
-                {/* <FormField 
-                    control={form.control}
-                    name="image"
-                    render={({}) => (
-                        <FormItem>
-                            <label htmlFor='image'>Choose an image: {pattern.image !== "" ? "*you already have an image for this pattern, this will replace the current image" : ""}</label>
-                            <Input type="file" id="image" name="image" accept="image/*" onChange={handleImageChange} />
-                        </FormItem>
-                    )}
                 />
-                {error > 0 && 
+
+                <div>
+                    <p className="text-sm font-medium mb-1.5">PDF File</p>
+                    {pattern.pdfFile && !newPdfFile && (
+                        <p className="text-xs text-muted-foreground mb-2">
+                            Current: {pattern.pdfFile.replace('pdf/', '')}
+                        </p>
+                    )}
+                    <label className="flex items-center gap-2 cursor-pointer w-fit">
+                        <input
+                            type="file"
+                            accept=".pdf"
+                            className="hidden"
+                            onChange={(e) => setNewPdfFile(e.target.files?.[0] ?? null)}
+                        />
+                        <Button type="button" size="sm" variant="outline" asChild>
+                            <span>
+                                <FileIcon className="h-3.5 w-3.5 mr-1" />
+                                {newPdfFile ? newPdfFile.name : 'Replace PDF'}
+                            </span>
+                        </Button>
+                    </label>
+                </div>
+
+                <div>
+                    <p className="text-sm font-medium mb-1.5">Cover Photo <span className="text-muted-foreground font-normal">(optional)</span></p>
+                    {pattern.image && !finalImageFile && (
+                        <div className="mb-2">
+                            <Image
+                                width={80}
+                                height={80}
+                                src={`/api/uploads/${pattern.image}`}
+                                alt="Current cover photo"
+                                className="rounded-md object-cover h-20 w-20"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">Current photo</p>
+                        </div>
+                    )}
+                    <label className="flex items-center gap-2 cursor-pointer w-fit">
+                        <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => setFinalImageFile(e.target.files?.[0] ?? null)}
+                        />
+                        <Button type="button" size="sm" variant="outline" asChild>
+                            <span>
+                                <ImageIcon className="h-3.5 w-3.5 mr-1" />
+                                {finalImageFile ? finalImageFile.name : pattern.image ? 'Replace photo' : 'Choose photo'}
+                            </span>
+                        </Button>
+                    </label>
+                </div>
+
+                {error > 0 && (
                     <Alert variant="destructive">
-                        <AlertCircle className="h-4 w-4"/>
+                        <AlertCircle className="h-4 w-4" />
                         <AlertTitle>Error</AlertTitle>
-                        <AlertDescription>{ error < 2 ? errMsgs[0] : errMsgs[1] }</AlertDescription>
+                        <AlertDescription>
+                            {error < 3 ? 'An error occurred on the server.' : 'Too many errors, closing…'}
+                        </AlertDescription>
                     </Alert>
-                }
-                <br /> */}
-                <div className="flex justify-end items-center space-x-4">
-                    <Button type="button" variant="secondary" onClick={() => setModMode(false)}>Cancel</Button>
-                    <Button type="submit">Submit</Button>
+                )}
+
+                <div className="flex justify-end gap-2 pt-2">
+                    <Button type="button" variant="ghost" onClick={() => setModMode(false)}>
+                        Cancel
+                    </Button>
+                    <Button type="submit">Save Changes</Button>
                 </div>
             </form>
         </Form>
     )
 }
 
-export default AddPatternForm
+export default function ModifyPatternForm({ setModMode, pattern, setPattern }: Props) {
+    if (isPdfPattern(pattern)) {
+        return <ModifyPdfPatternForm setModMode={setModMode} pattern={pattern} setPattern={setPattern} />
+    }
+    const dispatch = useDispatch<AppDispatch>()
+    const [error, setError] = useState(0)
+    const [finalImageFile, setFinalImageFile] = useState<File | null>(null)
+    // key: "sectionIdx_instrIdx" → new files to upload
+    const [instrFiles, setInstrFiles] = useState<Map<string, File[]>>(new Map())
+    // filenames the user has explicitly removed from existing instruction images
+    const [removedInstrImages, setRemovedInstrImages] = useState<string[]>([])
+
+    // Build initial existing-images map from the pattern, keyed "sectionIdx_instrIdx"
+    const [existingInstrImages, setExistingInstrImages] = useState<Map<string, string[]>>(() => {
+        const map = new Map<string, string[]>()
+        ;(pattern.sections ?? []).forEach((sec, s) => {
+            sec.instructions.forEach((instr, n) => {
+                if (instr.images && instr.images.length > 0) {
+                    map.set(`${s}_${n}`, [...instr.images])
+                }
+            })
+        })
+        return map
+    })
+
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            name: pattern.name,
+            supplies: pattern.supplies.map((s) => ({ name: s.name })),
+            sections: (pattern.sections ?? []).map((sec) => ({
+                title: sec.title,
+                instructions: sec.instructions.map((instr) => ({
+                    value: typeof instr === 'string' ? instr : instr.value,
+                    images: [],
+                })),
+            })),
+        },
+    })
+
+    const { fields: supplyFields } = useFieldArray({ control: form.control, name: 'supplies' })
+    const { fields: sectionFields } = useFieldArray({ control: form.control, name: 'sections' })
+
+    const handleNewInstrFiles = (sectionIdx: number, instrIdx: number, files: File[]) => {
+        const key = `${sectionIdx}_${instrIdx}`
+        setInstrFiles((prev) => {
+            const next = new Map(prev)
+            next.set(key, [...(next.get(key) ?? []), ...files])
+            return next
+        })
+    }
+
+    const handleRemoveExistingImage = (sectionIdx: number, instrIdx: number, filename: string) => {
+        setRemovedInstrImages((prev) => [...prev, filename])
+        const key = `${sectionIdx}_${instrIdx}`
+        setExistingInstrImages((prev) => {
+            const next = new Map(prev)
+            const imgs = (next.get(key) ?? []).filter((f) => f !== filename)
+            if (imgs.length > 0) next.set(key, imgs)
+            else next.delete(key)
+            return next
+        })
+    }
+
+    const onSubmit = async (values: z.infer<typeof formSchema>) => {
+        const sections = values.sections.map((sec, s) => ({
+            title: sec.title,
+            instructions: sec.instructions.map((instr, n) => ({
+                value: instr.value,
+                // carry surviving existing images; new ones are added by the API
+                images: existingInstrImages.get(`${s}_${n}`) ?? [],
+            })),
+        }))
+
+        const modPatternObj: pattern = {
+            _id: pattern._id,
+            name: values.name,
+            supplies: values.supplies,
+            sections,
+            image: pattern.image,
+        }
+
+        const formData = new FormData()
+        formData.append('action', 'modify')
+        if (finalImageFile) {
+            formData.append('finalImage', finalImageFile)
+            if (pattern.image) formData.append('oldFinalImage', pattern.image)
+        }
+
+        instrFiles.forEach((files, key) => {
+            const [s, n] = key.split('_').map(Number)
+            files.forEach((file, m) => {
+                formData.append(`instrImage_${s}_${n}_${m}`, file)
+            })
+        })
+
+        formData.append('oldInstrImages', JSON.stringify(removedInstrImages))
+        formData.append('pattern', JSON.stringify(modPatternObj))
+
+        const res = await fetch('/api/pattern', { method: 'POST', body: formData })
+        if (res.status === 201) {
+            const data = await res.json()
+            dispatch(modifyPattern(data.data))
+            setPattern(data.data)
+            setModMode(false)
+        } else {
+            setError((e) => {
+                const next = e + 1
+                if (next >= 3) setTimeout(() => setModMode(false), 1000)
+                return next
+            })
+        }
+    }
+
+    const onError = (errors: FieldErrors<z.infer<typeof formSchema>>) => {
+        console.log('Validation errors:', errors)
+    }
+
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-6 pt-2">
+                {/* Pattern name */}
+                <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Pattern Name</FormLabel>
+                            <FormControl>
+                                <Input {...field} />
+                            </FormControl>
+                            {form.formState.errors.name && (
+                                <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>
+                            )}
+                        </FormItem>
+                    )}
+                />
+
+                {/* Final photo */}
+                <div>
+                    <p className="text-sm font-medium mb-1.5">Final Photo</p>
+                    {pattern.image && !finalImageFile && (
+                        <div className="mb-2">
+                            <Image
+                                width={80}
+                                height={80}
+                                src={`/api/uploads/${pattern.image}`}
+                                alt="Current final photo"
+                                className="rounded-md object-cover h-20 w-20"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">Current photo</p>
+                        </div>
+                    )}
+                    <label className="flex items-center gap-2 cursor-pointer w-fit">
+                        <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => setFinalImageFile(e.target.files?.[0] ?? null)}
+                        />
+                        <Button type="button" size="sm" variant="outline" asChild>
+                            <span>
+                                <ImageIcon className="h-3.5 w-3.5 mr-1" />
+                                {finalImageFile ? finalImageFile.name : pattern.image ? 'Replace photo' : 'Choose photo'}
+                            </span>
+                        </Button>
+                    </label>
+                    {finalImageFile && (
+                        <p className="text-xs text-muted-foreground mt-1">{finalImageFile.name}</p>
+                    )}
+                </div>
+
+                {/* Supplies */}
+                <SuppliesFieldArray form={form} fields={supplyFields} />
+
+                {/* Sections */}
+                <SectionsFieldArray
+                    form={form}
+                    sectionFields={sectionFields}
+                    onNewFiles={handleNewInstrFiles}
+                    existingImages={existingInstrImages}
+                    onRemoveExistingImage={handleRemoveExistingImage}
+                />
+
+                {error > 0 && (
+                    <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>
+                            {error < 3 ? 'An error occurred on the server.' : 'Too many errors, closing…'}
+                        </AlertDescription>
+                    </Alert>
+                )}
+
+                <div className="flex justify-end gap-2 pt-2">
+                    <Button type="button" variant="ghost" onClick={() => setModMode(false)}>
+                        Cancel
+                    </Button>
+                    <Button type="submit">Save Changes</Button>
+                </div>
+            </form>
+        </Form>
+    )
+}

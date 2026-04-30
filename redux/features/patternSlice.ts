@@ -32,13 +32,16 @@ export const patterns = createSlice({
         },
         modifyPattern: (state, action: PayloadAction<pattern>) => {
             const index = state.value.patterns.findIndex((r) => r._id === action.payload._id)
-            if (index !== -1) { 
+            if (index !== -1) {
                 state.value.patterns[index] = action.payload
             }
+        },
+        deletePattern: (state, action: PayloadAction<string>) => {
+            state.value.patterns = state.value.patterns.filter(p => p._id !== action.payload)
         }
     }
 })
 export const getPatterns = (state: RootState) => state.patternReducer.value.patterns;
 
-export const { setPatterns, addPattern, modifyPattern } = patterns.actions;
+export const { setPatterns, addPattern, modifyPattern, deletePattern } = patterns.actions;
 export default patterns.reducer;
