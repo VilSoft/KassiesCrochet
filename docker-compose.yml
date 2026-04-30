@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  kassiesrecipies:
+    build: ./  # if building locally
+    # image: ghcr.io/<your-username>/kassiesrecipies:latest  # for CI/CD
+    container_name: kassiescrochet
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      MONGO_URI: mongodb://admin:STRONG_PASSWORD_HERE@localhost:27017/mydatabase?authSource=admin
+    volumes:
+      - /home/kai/KassiesCrochet/uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
