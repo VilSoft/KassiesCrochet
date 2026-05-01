@@ -1,5 +1,6 @@
 import supply from "./supply"
 import section from "./section"
+import { PatternTag } from "./tags"
 
 export default interface pattern {
     _id: string
@@ -8,6 +9,7 @@ export default interface pattern {
     sections: section[]
     image?: string
     pdfFile?: string
+    tags: PatternTag[]
 }
 
 export function isPdfPattern(p: pattern): boolean {

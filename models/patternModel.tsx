@@ -27,6 +27,7 @@ const patternSchema = new Schema({
     sections: { type: [sectionSchema], required: false, default: [] },
     image:    { type: String, required: false, default: '' },
     pdfFile:  { type: String, required: false, default: '' },
+    tags:     { type: [String], required: false, default: [] },
 })
 
 // In development, delete the cached model so schema changes take effect on hot reload.

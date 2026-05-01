@@ -30,6 +30,7 @@ export default function AddPatternForm() {
             name: '',
             supplies: [{ name: '' }],
             sections: [{ title: '', instructions: [{ value: '', images: [] }] }],
+            tags: ['My Pattern'] as ['My Pattern'],
         },
     })
 
@@ -55,6 +56,7 @@ export default function AddPatternForm() {
                 instructions: sec.instructions.map((i) => ({ value: i.value, images: [] })),
             })),
             image: '',
+            tags: ['My Pattern'],
         }
 
         const formData = new FormData()

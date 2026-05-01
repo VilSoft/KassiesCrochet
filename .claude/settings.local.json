@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npx shadcn@latest add alert-dialog --yes)",
       "Bash(npx tsc *)",
-      "Bash(npx next *)"
+      "Bash(npx next *)",
+      "Bash(npx shadcn *)"
     ]
   }
 }

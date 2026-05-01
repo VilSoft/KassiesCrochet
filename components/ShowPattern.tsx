@@ -102,14 +102,14 @@ export default function ShowPattern({ pattern }: PatternProp) {
         <div className="py-2">
             {/* Final photo */}
             {patternHere.image && (
-                <div className="w-full mb-5 rounded-xl overflow-hidden bg-muted">
+                <div className="mb-5 flex justify-center">
                     <Image
                         width={0}
                         height={0}
-                        sizes="100vw"
+                        sizes="(max-width: 640px) 100vw, 600px"
                         src={`/api/uploads/${patternHere.image}`}
                         alt={patternHere.name}
-                        className="w-full h-auto object-cover"
+                        className="rounded-xl max-w-full max-h-96 w-auto h-auto object-contain"
                     />
                 </div>
             )}

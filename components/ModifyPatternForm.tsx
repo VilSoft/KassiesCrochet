@@ -1,6 +1,6 @@
 "use client"
 import React, { useState } from 'react'
-import { pattern, isPdfPattern } from '@/interfaces'
+import { pattern, isPdfPattern, PatternTag } from '@/interfaces'
 import { modifyPattern } from '@/redux/features/patternSlice'
 import { useDispatch } from 'react-redux'
 import { AppDispatch } from '@/redux/store'
@@ -16,6 +16,7 @@ import { AlertCircle, ImageIcon, FileIcon } from 'lucide-react'
 import Image from 'next/image'
 import SuppliesFieldArray from './SuppliesFieldArray'
 import SectionsFieldArray from './SectionsFieldArray'
+import TagCheckboxGroup from './TagCheckboxGroup'
 
 interface Props {
     setModMode: React.Dispatch<React.SetStateAction<boolean>>
@@ -28,16 +29,25 @@ function ModifyPdfPatternForm({ setModMode, pattern, setPattern }: Props) {
     const [error, setError] = useState(0)
     const [newPdfFile, setNewPdfFile] = useState<File | null>(null)
     const [finalImageFile, setFinalImageFile] = useState<File | null>(null)
+    const [tags, setTags] = useState<PatternTag[]>(pattern.tags ?? [])
+    const [tagError, setTagError] = useState(false)
 
     const form = useForm<z.infer<typeof pdfFormSchema>>({
         resolver: zodResolver(pdfFormSchema),
-        defaultValues: { name: pattern.name },
+        defaultValues: { name: pattern.name, tags: pattern.tags ?? [] },
     })
 
     const onSubmit = async (values: z.infer<typeof pdfFormSchema>) => {
+        if (tags.length === 0) {
+            setTagError(true)
+            return
+        }
+        setTagError(false)
+
         const modPatternObj: pattern = {
             ...pattern,
             name: values.name,
+            tags,
         }
 
         const formData = new FormData()
@@ -84,6 +94,12 @@ function ModifyPdfPatternForm({ setModMode, pattern, setPattern }: Props) {
                             )}
                         </FormItem>
                     )}
+                />
+
+                <TagCheckboxGroup
+                    value={tags}
+                    onChange={(next) => { setTags(next); setTagError(false); form.setValue('tags', next as any) }}
+                    error={tagError ? 'Select at least one tag' : undefined}
                 />
 
                 <div>
@@ -164,15 +180,15 @@ export default function ModifyPatternForm({ setModMode, pattern, setPattern }: P
     if (isPdfPattern(pattern)) {
         return <ModifyPdfPatternForm setModMode={setModMode} pattern={pattern} setPattern={setPattern} />
     }
+
     const dispatch = useDispatch<AppDispatch>()
     const [error, setError] = useState(0)
     const [finalImageFile, setFinalImageFile] = useState<File | null>(null)
-    // key: "sectionIdx_instrIdx" → new files to upload
     const [instrFiles, setInstrFiles] = useState<Map<string, File[]>>(new Map())
-    // filenames the user has explicitly removed from existing instruction images
     const [removedInstrImages, setRemovedInstrImages] = useState<string[]>([])
+    const [tags, setTags] = useState<PatternTag[]>(pattern.tags ?? ['My Pattern'])
+    const [tagError, setTagError] = useState(false)
 
-    // Build initial existing-images map from the pattern, keyed "sectionIdx_instrIdx"
     const [existingInstrImages, setExistingInstrImages] = useState<Map<string, string[]>>(() => {
         const map = new Map<string, string[]>()
         ;(pattern.sections ?? []).forEach((sec, s) => {
@@ -197,6 +213,7 @@ export default function ModifyPatternForm({ setModMode, pattern, setPattern }: P
                     images: [],
                 })),
             })),
+            tags: (pattern.tags ?? ['My Pattern']) as [PatternTag, ...PatternTag[]],
         },
     })
 
@@ -225,11 +242,16 @@ export default function ModifyPatternForm({ setModMode, pattern, setPattern }: P
     }
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
+        if (tags.length === 0) {
+            setTagError(true)
+            return
+        }
+        setTagError(false)
+
         const sections = values.sections.map((sec, s) => ({
             title: sec.title,
             instructions: sec.instructions.map((instr, n) => ({
                 value: instr.value,
-                // carry surviving existing images; new ones are added by the API
                 images: existingInstrImages.get(`${s}_${n}`) ?? [],
             })),
         }))
@@ -240,6 +262,7 @@ export default function ModifyPatternForm({ setModMode, pattern, setPattern }: P
             supplies: values.supplies,
             sections,
             image: pattern.image,
+            tags,
         }
 
         const formData = new FormData()
@@ -281,7 +304,6 @@ export default function ModifyPatternForm({ setModMode, pattern, setPattern }: P
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-6 pt-2">
-                {/* Pattern name */}
                 <FormField
                     control={form.control}
                     name="name"
@@ -298,7 +320,12 @@ export default function ModifyPatternForm({ setModMode, pattern, setPattern }: P
                     )}
                 />
 
-                {/* Final photo */}
+                <TagCheckboxGroup
+                    value={tags}
+                    onChange={(next) => { setTags(next); setTagError(false); form.setValue('tags', next as any) }}
+                    error={tagError ? 'Select at least one tag' : undefined}
+                />
+
                 <div>
                     <p className="text-sm font-medium mb-1.5">Final Photo</p>
                     {pattern.image && !finalImageFile && (
@@ -332,10 +359,8 @@ export default function ModifyPatternForm({ setModMode, pattern, setPattern }: P
                     )}
                 </div>
 
-                {/* Supplies */}
                 <SuppliesFieldArray form={form} fields={supplyFields} />
 
-                {/* Sections */}
                 <SectionsFieldArray
                     form={form}
                     sectionFields={sectionFields}

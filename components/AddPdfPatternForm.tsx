@@ -14,6 +14,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle, FileIcon, ImageIcon } from 'lucide-react'
+import { PatternTag } from '@/interfaces'
+import TagCheckboxGroup from './TagCheckboxGroup'
 
 export default function AddPdfPatternForm() {
     const dispatch = useDispatch<AppDispatch>()
@@ -21,10 +23,12 @@ export default function AddPdfPatternForm() {
     const [pdfFile, setPdfFile] = useState<File | null>(null)
     const [pdfError, setPdfError] = useState(false)
     const [finalImageFile, setFinalImageFile] = useState<File | null>(null)
+    const [tags, setTags] = useState<PatternTag[]>([])
+    const [tagError, setTagError] = useState(false)
 
     const form = useForm<z.infer<typeof pdfFormSchema>>({
         resolver: zodResolver(pdfFormSchema),
-        defaultValues: { name: '' },
+        defaultValues: { name: '', tags: [] },
     })
 
     const onSubmit = async (values: z.infer<typeof pdfFormSchema>) => {
@@ -33,6 +37,11 @@ export default function AddPdfPatternForm() {
             return
         }
         setPdfError(false)
+        if (tags.length === 0) {
+            setTagError(true)
+            return
+        }
+        setTagError(false)
 
         const patternObj: pattern = {
             _id: '',
@@ -40,6 +49,7 @@ export default function AddPdfPatternForm() {
             supplies: [],
             sections: [],
             pdfFile: '',
+            tags,
         }
 
         const formData = new FormData()
@@ -56,6 +66,8 @@ export default function AddPdfPatternForm() {
             form.reset()
             setPdfFile(null)
             setFinalImageFile(null)
+            setTags([])
+            setTagError(false)
         } else {
             setError((e) => {
                 const next = e + 1
@@ -107,6 +119,12 @@ export default function AddPdfPatternForm() {
                         <p className="text-xs text-destructive mt-1">Please choose a PDF file</p>
                     )}
                 </div>
+
+                <TagCheckboxGroup
+                    value={tags}
+                    onChange={(next) => { setTags(next); setTagError(false); form.setValue('tags', next as any) }}
+                    error={tagError ? 'Select at least one tag' : undefined}
+                />
 
                 <div>
                     <p className="text-sm font-medium mb-1.5">Cover Photo <span className="text-muted-foreground font-normal">(optional)</span></p>
