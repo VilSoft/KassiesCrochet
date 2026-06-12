@@ -10,9 +10,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pathToFileURL(
     path.join(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs')
 ).href;
 
-const wasmUrl = pathToFileURL(
-    path.join(process.cwd(), 'node_modules/pdfjs-dist/wasm') + path.sep
-).href;
+const wasmUrl = path.join(process.cwd(), 'node_modules/pdfjs-dist/wasm') + path.sep;
 
 export async function renderPdfFirstPageToBuffer(pdfBuffer: Buffer): Promise<Buffer | null> {
     try {
