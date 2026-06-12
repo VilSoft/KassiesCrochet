@@ -4,6 +4,7 @@ import { pattern } from "@/interfaces";
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import { writeFile, unlink, mkdir } from "fs/promises";
+import { renderPdfFirstPageToBuffer } from "@/utils/pdfThumbnail";
 
 const uploadDir      = path.join(process.cwd(), 'uploads');
 const imageUploadDir = path.join(uploadDir, 'images');
@@ -73,12 +74,29 @@ export async function POST(req: NextRequest) {
 
         // Handle PDF file
         const pdfUpload = data.get('pdfFile');
+        let pdfBufferForCover: Buffer | null = null;
         if (pdfUpload instanceof File) {
             const filename = `${sanitizedName}-${timestamp}.pdf`;
-            await writeFile(path.join(pdfUploadDir, filename), Buffer.from(await pdfUpload.arrayBuffer()));
+            const buf = Buffer.from(await pdfUpload.arrayBuffer());
+            await writeFile(path.join(pdfUploadDir, filename), buf);
             patternObj.pdfFile = 'pdf/' + filename;
             const oldPdf = data.get('oldPdfFile') as string | null;
             if (oldPdf) await unlink(path.join(uploadDir, oldPdf)).catch(() => {});
+
+            const hasNewPhoto = finalFile instanceof File;
+            if (!hasNewPhoto && !patternObj.image) {
+                pdfBufferForCover = buf;
+            }
+        }
+
+        // Auto-generate cover image from PDF page 1 if no photo was provided/exists
+        if (pdfBufferForCover) {
+            const coverBuffer = await renderPdfFirstPageToBuffer(pdfBufferForCover);
+            if (coverBuffer) {
+                const coverFilename = `${sanitizedName}-final-${timestamp}.jpg`;
+                await writeFile(path.join(imageUploadDir, coverFilename), coverBuffer);
+                patternObj.image = 'images/' + coverFilename;
+            }
         }
 
         switch (action) {

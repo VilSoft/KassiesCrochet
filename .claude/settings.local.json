@@ -4,7 +4,11 @@
       "Bash(npx shadcn@latest add alert-dialog --yes)",
       "Bash(npx tsc *)",
       "Bash(npx next *)",
-      "Bash(npx shadcn *)"
+      "Bash(npx shadcn *)",
+      "Bash(rm -f test.pdf test.jpg bad.pdf uploads/pdf/test_pdf_pattern* uploads/pdf/test_pdf_with_photo* uploads/pdf/bad_pdf_pattern* uploads/images/test_pdf_pattern* uploads/images/test_pdf_with_photo* *)"
+    ],
+    "additionalDirectories": [
+      "E:\\Projects\\Home_auto\\KassiesCrochet\\uploads\\pdf"
     ]
   }
 }
