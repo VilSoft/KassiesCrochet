@@ -11,9 +11,8 @@ const imageUploadDir = path.join(uploadDir, 'images');
 const pdfUploadDir   = path.join(uploadDir, 'pdf');
 
 export async function GET() {
-    const db = await connectMongoPatterns();
+    await connectMongoPatterns();
     const patterns = await Pattern.find({});
-    db.connection.close();
     return NextResponse.json(patterns);
 }
 
@@ -114,9 +113,8 @@ export async function DELETE(req: NextRequest) {
         const { id, imageFiles }: { id: string; imageFiles: string[] } = await req.json();
         if (!id) return NextResponse.json({ error: 'Missing pattern id' }, { status: 400 });
 
-        const db = await connectMongoPatterns();
+        await connectMongoPatterns();
         await Pattern.findByIdAndDelete(id);
-        db.connection.close();
 
         await Promise.all(
             (imageFiles ?? []).map(f => unlink(path.join(uploadDir, f)).catch(() => {}))
@@ -129,17 +127,15 @@ export async function DELETE(req: NextRequest) {
 }
 
 async function addPattern(patternObj: pattern) {
-    const db = await connectMongoPatterns();
+    await connectMongoPatterns();
     const sendJSON: any = { ...patternObj };
     delete sendJSON['_id'];
     const created = await Pattern.create(sendJSON);
-    db.connection.close();
     return NextResponse.json({ message: 'Pattern added successfully', data: created }, { status: 201 });
 }
 
 async function modifyPattern(patternObj: pattern) {
-    const db = await connectMongoPatterns();
+    await connectMongoPatterns();
     const updated = await Pattern.findByIdAndUpdate(patternObj._id, patternObj, { new: true });
-    db.connection.close();
     return NextResponse.json({ message: 'Pattern modified successfully', data: updated }, { status: 201 });
 }

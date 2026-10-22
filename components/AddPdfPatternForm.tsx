@@ -9,6 +9,7 @@ import { pdfFormSchema } from '@/interfaces/zPatterns'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useToast } from './Toast'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -19,6 +20,7 @@ import TagCheckboxGroup from './TagCheckboxGroup'
 
 export default function AddPdfPatternForm() {
     const dispatch = useDispatch<AppDispatch>()
+    const toast = useToast()
     const [error, setError] = useState(0)
     const [pdfFile, setPdfFile] = useState<File | null>(null)
     const [pdfError, setPdfError] = useState(false)
@@ -58,9 +60,10 @@ export default function AddPdfPatternForm() {
         if (finalImageFile) formData.append('finalImage', finalImageFile)
         formData.append('pattern', JSON.stringify(patternObj))
 
-        const res = await fetch('/api/pattern', { method: 'POST', body: formData })
-        if (res.status === 201) {
+        const res = await fetch('/api/pattern', { method: 'POST', body: formData }).catch(() => null)
+        if (res?.status === 201) {
             const data = await res.json()
+            toast(`Added "${patternObj.name}"`)
             dispatch(addPattern(data.data))
             dispatch(setAddPdfPatternIsOpen(false))
             form.reset()
@@ -69,6 +72,7 @@ export default function AddPdfPatternForm() {
             setTags([])
             setTagError(false)
         } else {
+            toast("Couldn't save the pattern.", 'error')
             setError((e) => {
                 const next = e + 1
                 if (next >= 3) setTimeout(() => dispatch(setAddPdfPatternIsOpen(false)), 1000)

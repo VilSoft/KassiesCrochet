@@ -14,11 +14,8 @@ export default function Navbar() {
     const [isDarkMode, setIsDarkMode] = useState(false)
 
     useEffect(() => {
-        const theme = localStorage.getItem('theme')
-        if (theme === 'dark') {
-            window.document.documentElement.classList.add('dark')
-            setIsDarkMode(true)
-        }
+        // Theme class is applied pre-hydration by the script in app/layout.tsx
+        setIsDarkMode(window.document.documentElement.classList.contains('dark'))
     }, [])
 
     const toggleTheme = () => {
@@ -36,16 +33,16 @@ export default function Navbar() {
     }
 
     return (
-        <nav className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="flex h-14 items-center px-4 gap-3">
+        <nav className="sticky top-0 z-40 w-full glass-nav">
+            <div className="flex h-14 items-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 gap-3">
                 <div className="flex items-center gap-2 shrink-0">
                     <Image width={28} height={28} src={icon} alt="" />
-                    <span className="font-semibold text-sm hidden sm:block">Kassie's Crochet Patterns</span>
+                    <span className="font-semibold text-sm tracking-tight hidden sm:block">Kassie's Crochet Patterns</span>
                 </div>
                 <div className="flex items-center gap-2 ml-auto">
                     <Input
                         type="text"
-                        className="w-32 sm:w-48 h-8 text-sm"
+                        className="w-32 sm:w-48 h-8 text-sm bg-card/60 border-[var(--glass-border)]"
                         placeholder="Search…"
                         onChange={(e) => dispatch(setSearchParam(e.target.value))}
                     />

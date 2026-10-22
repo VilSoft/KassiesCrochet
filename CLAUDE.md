@@ -11,6 +11,8 @@ npm run lint     # Run ESLint
 npm run start    # Start production server
 ```
 
+`predev`/`prebuild` run `scripts/copy-pdfjs.mjs`, copying the pdf.js worker, wasm decoders (JPEG2000/JBIG2 images need them), cmaps, fonts and ICC profiles from `pdfjs-dist` into `public/pdfjs/` (gitignored). The client `PdfViewer` loads them from `/pdfjs/`.
+
 No test suite is configured.
 
 ## Architecture
@@ -35,7 +37,7 @@ All types live in `interfaces/`. Zod schemas in `interfaces/zPatterns.ts` are th
 
 ### Database
 
-MongoDB via Mongoose. Connection string hardcoded in `utils/connectMongo.tsx` as `mongodb://localhost:27017/patterns`. The `utils/.env.local` file exists but is **not** used by the connect function.
+MongoDB via Mongoose. Connection string hardcoded in `utils/connectMongo.tsx` as `mongodb://localhost:27017/patterns`. `connectMongoPatterns()` caches one connection promise on `globalThis` — routes just `await` it and must **never** call `connection.close()` (breaks concurrent requests). The `utils/.env.local` file exists but is **not** used by the connect function.
 
 **Mongoose model caching gotcha**: `models/patternModel.tsx` deletes the cached `mongoose.models.Pattern` in development before re-registering. This is intentional — Mongoose caches compiled models across hot reloads, and with `strict: true` it silently drops fields not in the cached schema. Without this, schema changes are invisible until a full process restart.
 
@@ -67,7 +69,7 @@ Two slices:
 - `patternSlice` — `patterns: pattern[]`; actions: `setPatterns`, `addPattern`, `modifyPattern`, `deletePattern`
 - `patternListSlice` — UI state: `searchParam`, `addPatternIsOpen`, `patternIsOpen`, `addPdfPatternIsOpen`
 
-`ReduxProvider` wraps the app in `app/page.tsx`.
+`ReduxProvider` and `ToastProvider` wrap the app in `app/page.tsx`. Use `const toast = useToast()` from `components/Toast.tsx`; `toast(msg)` for success, `toast(msg, 'error')` for failures.
 
 ### Component tree
 
@@ -77,7 +79,9 @@ Patterns          — fetches on mount, renders list + owns all modals
                     WhichOpen: conv, show, add, addPdf, mod
                     show modal uses sm:max-w-4xl (wide, for PDF embed)
   ShowPattern     — read view; edit toggle renders ModifyPatternForm inline
-                    if isPdfPattern: renders <embed> PDF viewer + Edit/Delete only (no image, no supplies/sections)
+                    if isPdfPattern: renders PdfViewer + Edit/Delete only (no image, no supplies/sections)
+  PdfViewer       — pdf.js (pdfjs-dist) renders pages to canvases, lazily via IntersectionObserver;
+                    zoom, open-in-tab, download. Replaces <embed>, which showed blank pages in Firefox.
   AddPatternForm  — add regular pattern form
   AddPdfPatternForm — add PDF pattern form (name + PDF file + optional cover photo)
   ModifyPatternForm — edit form; if isPdfPattern delegates to ModifyPdfPatternForm (name + replace PDF + replace photo)
@@ -97,7 +101,9 @@ Shared form sub-components:
 
 Tailwind CSS v4 with `@theme inline` in `app/globals.css`. Semantic color variables (`--background`, `--foreground`, etc.) are defined in `:root` / `.dark`, then mapped to Tailwind's `--color-*` namespace via `@theme inline`. Without this mapping, utilities like `bg-background` resolve to transparent.
 
-Dark mode: toggled by adding/removing `dark` class on `<html>`, persisted in `localStorage` (handled in `Navbar.tsx`).
+Visual style mirrors the sibling `homeauto` dashboard: same HSL tokens (indigo primary, dark surfaces), Inter font (`--font-inter`), drifting radial-gradient blobs in `components/Layout.tsx`. Custom utilities in `globals.css`: `glass-nav`, `animate-blob-drift-{1,2,3}`. Shared-look classes copied from KassiesRecipies (keep values in sync): `card-clean` (= recipes `.recipe-card-clean` base), `card-hover` (lift + primary glow; add for clickable cards), `section-label`, `brand-title` (gradient wordmark). `tailwindcss-animate` is loaded via `@plugin`. Dialogs are solid `bg-card` and use fade+zoom only — the `slide-in-from-*` classes double up with Tailwind v4's `translate` property and make dialogs fly in from the corner.
+
+Dark mode: **default on**. Inline script in `app/layout.tsx` adds `dark` to `<html>` pre-hydration unless `localStorage.theme === 'light'`. `Navbar.tsx` toggle flips the class and persists the choice.
 
 CSS Modules in `styles/` are largely unused after the Tailwind migration; prefer Tailwind utility classes for new work.
 

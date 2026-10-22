@@ -4,7 +4,9 @@ import React, { useState } from 'react'
 import Image from 'next/image'
 import { PencilLine, Trash2 } from 'lucide-react'
 import { Button } from './ui/button'
+import { useToast } from './Toast'
 import ModifyPatternForm from './ModifyPatternForm'
+import PdfViewer from './PdfViewer'
 import { deletePattern } from '@/redux/features/patternSlice'
 import { setIsPatternOpen } from '@/redux/features/patternListSlice'
 import { useDispatch } from 'react-redux'
@@ -26,6 +28,7 @@ interface PatternProp {
 
 export default function ShowPattern({ pattern }: PatternProp) {
     const dispatch = useDispatch<AppDispatch>()
+    const toast = useToast()
     const [modMode, setModMode] = useState(false)
     const [patternHere, setPattern] = useState<pattern>(pattern)
     const [deleteOpen, setDeleteOpen] = useState(false)
@@ -41,10 +44,13 @@ export default function ShowPattern({ pattern }: PatternProp) {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: patternHere._id, imageFiles }),
-        })
-        if (res.ok) {
+        }).catch(() => null)
+        if (res?.ok) {
             dispatch(deletePattern(patternHere._id))
             dispatch(setIsPatternOpen(false))
+            toast(`Deleted "${patternHere.name}"`)
+        } else {
+            toast("Couldn't delete the pattern. Try again.", 'error')
         }
     }
 
@@ -69,12 +75,7 @@ export default function ShowPattern({ pattern }: PatternProp) {
                         <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
                     </Button>
                 </div>
-                <embed
-                    src={`/api/uploads/${patternHere.pdfFile}`}
-                    type="application/pdf"
-                    className="w-full rounded-xl border border-border"
-                    style={{ height: '70vh' }}
-                />
+                <PdfViewer src={`/api/uploads/${patternHere.pdfFile}`} title={patternHere.name} />
                 <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
                     <AlertDialogContent>
                         <AlertDialogHeader>
@@ -126,7 +127,7 @@ export default function ShowPattern({ pattern }: PatternProp) {
 
             {/* Supplies */}
             <section className="mb-5">
-                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Supplies</h2>
+                <h2 className="section-label mb-2">Supplies</h2>
                 <ul className="space-y-1">
                     {patternHere.supplies.map((s) => (
                         <li key={s.name} className="text-sm flex items-center gap-2">
@@ -139,10 +140,10 @@ export default function ShowPattern({ pattern }: PatternProp) {
 
             {/* Sections + Instructions */}
             <section>
-                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Instructions</h2>
+                <h2 className="section-label mb-3">Instructions</h2>
                 <div className="space-y-5">
                     {(patternHere.sections ?? []).map((sec, s) => (
-                        <div key={s} className="rounded-xl border border-border bg-card p-4">
+                        <div key={s} className="card-clean p-4">
                             <h3 className="text-sm font-semibold mb-3">{sec.title}</h3>
                             <ol className="space-y-4">
                                 {sec.instructions.map((instr, j) => (

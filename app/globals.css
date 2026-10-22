@@ -1,70 +1,106 @@
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
 
 /* =========================
    SEMANTIC COLOR VARIABLES
+   Shared design tokens with homeauto (dark glass, indigo primary).
    Defined in :root / .dark so they respond to the theme class.
    @theme inline below maps these into Tailwind's --color-* namespace.
    ========================= */
 :root {
-  --background:              hsl(0 0% 100%);
-  --foreground:              hsl(222.2 84% 4.9%);
+  --background:              hsl(220 14% 96%);
+  --foreground:              hsl(222 47% 11%);
+
+  --surface:                 hsl(220 14% 98%);
+  --surface-raised:          hsl(0 0% 100%);
+
+  --foreground-muted:        hsl(220 9% 46%);
+  --foreground-subtle:       hsl(220 9% 63%);
 
   --card:                    hsl(0 0% 100%);
-  --card-foreground:         hsl(222.2 84% 4.9%);
+  --card-foreground:         hsl(222 47% 11%);
+  --card-border:             hsl(220 13% 91%);
+  --card-shadow:             0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
 
   --popover:                 hsl(0 0% 100%);
-  --popover-foreground:      hsl(222.2 84% 4.9%);
+  --popover-foreground:      hsl(222 47% 11%);
 
-  --primary:                 hsl(222.2 47.4% 11.2%);
-  --primary-foreground:      hsl(210 40% 98%);
+  --primary:                 hsl(243 75% 59%);
+  --primary-foreground:      hsl(0 0% 100%);
 
-  --secondary:               hsl(210 40% 96%);
-  --secondary-foreground:    hsl(222.2 47.4% 11.2%);
+  --secondary:               hsl(220 14% 96%);
+  --secondary-foreground:    hsl(222 47% 11%);
 
-  --muted:                   hsl(210 40% 96%);
-  --muted-foreground:        hsl(215.4 16.3% 46.9%);
+  --muted:                   hsl(220 14% 96%);
+  --muted-foreground:        hsl(220 9% 46%);
 
-  --accent:                  hsl(210 40% 96%);
-  --accent-foreground:       hsl(222.2 47.4% 11.2%);
+  --accent:                  hsl(220 14% 96%);
+  --accent-foreground:       hsl(222 47% 11%);
 
   --destructive:             hsl(0 84.2% 60.2%);
-  --destructive-foreground:  hsl(210 40% 98%);
+  --destructive-foreground:  hsl(0 0% 98%);
 
-  --border:                  hsl(214.3 31.8% 91.4%);
-  --input:                   hsl(214.3 31.8% 91.4%);
-  --ring:                    hsl(222.2 84% 4.9%);
+  --success:                 hsl(142 71% 45%);
 
-  --radius:                  0.5rem;
+  --border:                  hsl(220 13% 91%);
+  --input:                   hsl(220 13% 91%);
+  --ring:                    hsl(243 75% 59%);
+
+  --nav-bg:                  hsl(220 14% 96%);
+  --glass-border:            rgb(0 0 0 / 0.06);
+  --card-edge:               hsl(220 13% 88%);
+  --shadow-hover:            0 0 14px color-mix(in srgb, var(--primary) 14%, transparent);
+  --blob-opacity:            0.35;
+
+  --radius:                  0.75rem;
 }
 
 .dark {
-  --background:              hsl(222.2 84% 4.9%);
+  --background:              hsl(230 40% 3%);
   --foreground:              hsl(210 40% 98%);
 
-  --card:                    hsl(222.2 84% 4.9%);
-  --card-foreground:         hsl(210 40% 98%);
+  --surface:                 hsl(228 38% 6%);
+  --surface-raised:          hsl(228 35% 9%);
 
-  --popover:                 hsl(222.2 84% 4.9%);
+  --foreground-muted:        hsl(215 20% 65%);
+  --foreground-subtle:       hsl(215 15% 45%);
+
+  --card:                    hsl(228 38% 9%);
+  --card-foreground:         hsl(210 40% 98%);
+  --card-border:             hsl(228 30% 20%);
+  --card-shadow:             0 8px 32px -4px rgb(0 0 0 / 0.5), 0 2px 8px -2px rgb(0 0 0 / 0.4);
+
+  --popover:                 hsl(222 47% 7%);
   --popover-foreground:      hsl(210 40% 98%);
 
-  --primary:                 hsl(210 40% 98%);
-  --primary-foreground:      hsl(222.2 47.4% 11.2%);
+  --primary:                 hsl(243 75% 65%);
+  --primary-foreground:      hsl(0 0% 100%);
 
-  --secondary:               hsl(217.2 32.6% 17.5%);
+  --secondary:               hsl(222 47% 10%);
   --secondary-foreground:    hsl(210 40% 98%);
 
-  --muted:                   hsl(217.2 32.6% 17.5%);
-  --muted-foreground:        hsl(215 20.2% 65.1%);
+  --muted:                   hsl(222 47% 10%);
+  --muted-foreground:        hsl(215 20% 65%);
 
-  --accent:                  hsl(217.2 32.6% 17.5%);
+  --accent:                  hsl(222 47% 10%);
   --accent-foreground:       hsl(210 40% 98%);
 
   --destructive:             hsl(0 62.8% 30.6%);
-  --destructive-foreground:  hsl(210 40% 98%);
+  --destructive-foreground:  hsl(0 0% 98%);
 
-  --border:                  hsl(217.2 32.6% 17.5%);
-  --input:                   hsl(217.2 32.6% 17.5%);
-  --ring:                    hsl(212.7 26.8% 83.9%);
+  --success:                 hsl(142 71% 45%);
+
+  --border:                  hsl(222 30% 16%);
+  --input:                   hsl(222 30% 16%);
+  --ring:                    hsl(243 75% 65%);
+
+  --nav-bg:                  hsl(222 47% 4%);
+  --glass-border:            rgb(255 255 255 / 0.07);
+  --card-edge:               rgb(255 255 255 / 0.07);
+  --shadow-hover:            0 0 14px color-mix(in srgb, var(--primary) 14%, transparent);
+  --blob-opacity:            1;
 }
 
 /* =========================
@@ -73,11 +109,20 @@
    for utilities like bg-background, text-foreground, border-border, etc.
    ========================= */
 @theme inline {
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+
   --color-background:             var(--background);
   --color-foreground:             var(--foreground);
 
+  --color-surface:                var(--surface);
+  --color-surface-raised:         var(--surface-raised);
+
+  --color-foreground-muted:       var(--foreground-muted);
+  --color-foreground-subtle:      var(--foreground-subtle);
+
   --color-card:                   var(--card);
   --color-card-foreground:        var(--card-foreground);
+  --color-card-border:            var(--card-border);
 
   --color-popover:                var(--popover);
   --color-popover-foreground:     var(--popover-foreground);
@@ -97,14 +142,102 @@
   --color-destructive:            var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
 
+  --color-success:                var(--success);
+
   --color-border:                 var(--border);
   --color-input:                  var(--input);
   --color-ring:                   var(--ring);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --shadow-card:    var(--card-shadow);
+  --shadow-glow-sm: 0 0 12px color-mix(in srgb, var(--primary) 20%, transparent);
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+
+  --animate-blob-drift-1: blob-drift-1 22s ease-in-out infinite;
+  --animate-blob-drift-2: blob-drift-2 28s ease-in-out infinite;
+  --animate-blob-drift-3: blob-drift-3 19s ease-in-out infinite;
+
+  @keyframes blob-drift-1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%      { transform: translate(40px, -28px) scale(1.06); }
+    66%      { transform: translate(-22px, 18px) scale(0.95); }
+  }
+  @keyframes blob-drift-2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    40%      { transform: translate(-32px, 24px) scale(1.08); }
+    70%      { transform: translate(20px, -16px) scale(0.96); }
+  }
+  @keyframes blob-drift-3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%      { transform: translate(16px, -30px) scale(1.05); }
+  }
+}
+
+/* =========================
+   GLASS UTILITIES (homeauto look)
+   ========================= */
+@utility glass-nav {
+  background: color-mix(in srgb, var(--nav-bg) 60%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+/* =========================
+   SHARED CARD LOOK
+   Same values as KassiesRecipies (.recipe-card-clean, .section-label,
+   .brand-title) so all home sites read as one family.
+   ========================= */
+@utility card-clean {
+  background: color-mix(in srgb, var(--card) 82%, transparent);
+  border: 1px solid var(--card-edge);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow), inset 0 1px 0 rgb(255 255 255 / 0.06);
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+/* Interactive cards: lift + primary glow on hover */
+@utility card-hover {
+  cursor: pointer;
+  &:hover {
+    background: color-mix(in srgb, var(--card) 90%, transparent);
+    border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-2px);
+  }
+}
+
+@utility section-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+@utility brand-title {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  background: linear-gradient(135deg, hsl(270 70% 65%), hsl(210 85% 55%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  &:where(.dark *) {
+    background-image: linear-gradient(135deg, hsl(270 70% 75%), hsl(210 85% 65%));
+  }
+}
+
+::selection {
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
+  color: var(--foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-blobs > div { animation: none; }
 }
 
 /* =========================
@@ -113,10 +246,33 @@
 @layer base {
   * {
     border-color: var(--border);
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   body {
     background-color: var(--background);
     color: var(--foreground);
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  *::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background-color: var(--border);
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--foreground-subtle);
   }
 }

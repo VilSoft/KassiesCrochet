@@ -9,6 +9,7 @@ import { formSchema } from '@/interfaces/zPatterns'
 import { useForm, useFieldArray, FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useToast } from './Toast'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -19,6 +20,7 @@ import SectionsFieldArray from './SectionsFieldArray'
 
 export default function AddPatternForm() {
     const dispatch = useDispatch<AppDispatch>()
+    const toast = useToast()
     const [error, setError] = useState(0)
     const [finalImageFile, setFinalImageFile] = useState<File | null>(null)
     // key: "sectionIdx_instrIdx" → new files to upload
@@ -73,13 +75,15 @@ export default function AddPatternForm() {
 
         formData.append('pattern', JSON.stringify(patternObj))
 
-        const res = await fetch('/api/pattern', { method: 'POST', body: formData })
-        if (res.status === 201) {
+        const res = await fetch('/api/pattern', { method: 'POST', body: formData }).catch(() => null)
+        if (res?.status === 201) {
             const data = await res.json()
+            toast(`Added "${patternObj.name}"`)
             dispatch(addPattern(data.data))
             dispatch(setAddPatternIsOpen(false))
             form.reset()
         } else {
+            toast("Couldn't save the pattern.", 'error')
             setError((e) => {
                 const next = e + 1
                 if (next >= 3) setTimeout(() => dispatch(setAddPatternIsOpen(false)), 1000)

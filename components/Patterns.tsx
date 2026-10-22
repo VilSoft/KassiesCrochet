@@ -20,6 +20,7 @@ import AddPdfPatternForm from './AddPdfPatternForm'
 import ShowPattern from './ShowPattern'
 import Image from 'next/image'
 import { Button } from './ui/button'
+import { useToast } from './Toast'
 import { FileIcon } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs'
 
@@ -39,7 +40,7 @@ function PatternListItem({
     return (
         <li
             onClick={() => onClick(p)}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-card cursor-pointer transition-all duration-150 hover:shadow-md hover:border-primary/30 hover:bg-accent animate-in fade-in-0 slide-in-from-bottom-2"
+            className="flex items-center gap-3 px-4 py-3 card-clean card-hover active:scale-[0.99] animate-in fade-in-0 slide-in-from-bottom-2"
             style={{ animationDelay: `${idx * 40}ms` }}
         >
             {p.image && (
@@ -48,12 +49,12 @@ function PatternListItem({
                     height={48}
                     src={`/api/uploads/${p.image}`}
                     alt={p.name}
-                    className="h-12 w-12 rounded-lg object-cover shrink-0"
+                    className="h-12 w-12 rounded-md object-cover shrink-0"
                 />
             )}
             {p.pdfFile && !p.image && (
-                <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                    <FileIcon className="h-6 w-6 text-muted-foreground" />
+                <div className="h-12 w-12 rounded-md bg-primary/12 flex items-center justify-center shrink-0">
+                    <FileIcon className="h-6 w-6 text-primary" />
                 </div>
             )}
             <span className="text-sm font-medium">{p.name}</span>
@@ -63,6 +64,7 @@ function PatternListItem({
 
 export default function Patterns() {
     const dispatch = useDispatch<AppDispatch>()
+    const toast = useToast()
     const patterns = useSelector(getPatterns)
     const search = useSelector(getSearchParam)
     const isOpen = useSelector(getAddPatternIsOpen)
@@ -83,13 +85,17 @@ export default function Patterns() {
             const res = await fetch('/api/pattern', {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
-            })
+            }).catch(() => null)
+            if (!res?.ok) {
+                toast("Couldn't load patterns.", 'error')
+                return
+            }
             const data = await res.json()
             dispatch(setPatterns(data))
             setLoaded(true)
         }
         fetchPatterns()
-    }, [loaded, dispatch])
+    }, [loaded, dispatch, toast])
 
     const matchesSearch = (p: pattern) =>
         p.name.toLowerCase().includes(search.toLowerCase())
@@ -104,15 +110,19 @@ export default function Patterns() {
     const hasUntagged = patterns.some((p) => (p.tags ?? []).length === 0)
 
     return (
-        <div className="flex justify-center px-4 py-6">
+        <div className="flex justify-center px-4 sm:px-6 lg:px-8 py-8">
             <div className="w-full max-w-xl">
+                <div className="mb-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
+                    <h1 className="brand-title text-[2rem] mb-1">Kassie&apos;s Patterns</h1>
+                    <p className="text-sm text-foreground-muted">Crochet pattern library</p>
+                </div>
                 {/* Loading skeletons */}
                 {!loaded && (
                     <div className="space-y-3">
                         {[1, 2, 3].map((i) => (
                             <div
                                 key={i}
-                                className="h-16 rounded-xl border border-border bg-muted animate-pulse"
+                                className="h-[4.5rem] card-clean animate-pulse"
                             />
                         ))}
                     </div>
@@ -131,7 +141,7 @@ export default function Patterns() {
                 {/* Tabs */}
                 {loaded && patterns.length > 0 && (
                     <Tabs defaultValue="My Pattern">
-                        <TabsList className="w-full justify-start gap-0 h-auto p-0 bg-transparent border-b border-border rounded-none">
+                        <TabsList className="w-full justify-start gap-0 h-auto p-0 bg-transparent border-b border-[var(--glass-border)] rounded-none overflow-x-auto">
                             {PATTERN_TAGS.map((tag) => (
                                 <TabsTrigger key={tag} value={tag} className={TAB_TRIGGER_CLASS}>
                                     {tag}

@@ -8,6 +8,7 @@ import { formSchema, pdfFormSchema } from '@/interfaces/zPatterns'
 import { useForm, useFieldArray, FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useToast } from './Toast'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -26,6 +27,7 @@ interface Props {
 
 function ModifyPdfPatternForm({ setModMode, pattern, setPattern }: Props) {
     const dispatch = useDispatch<AppDispatch>()
+    const toast = useToast()
     const [error, setError] = useState(0)
     const [newPdfFile, setNewPdfFile] = useState<File | null>(null)
     const [finalImageFile, setFinalImageFile] = useState<File | null>(null)
@@ -62,13 +64,15 @@ function ModifyPdfPatternForm({ setModMode, pattern, setPattern }: Props) {
         }
         formData.append('pattern', JSON.stringify(modPatternObj))
 
-        const res = await fetch('/api/pattern', { method: 'POST', body: formData })
-        if (res.status === 201) {
+        const res = await fetch('/api/pattern', { method: 'POST', body: formData }).catch(() => null)
+        if (res?.status === 201) {
             const data = await res.json()
+            toast('Changes saved')
             dispatch(modifyPattern(data.data))
             setPattern(data.data)
             setModMode(false)
         } else {
+            toast("Couldn't save your changes.", 'error')
             setError((e) => {
                 const next = e + 1
                 if (next >= 3) setTimeout(() => setModMode(false), 1000)
@@ -182,6 +186,7 @@ export default function ModifyPatternForm({ setModMode, pattern, setPattern }: P
     }
 
     const dispatch = useDispatch<AppDispatch>()
+    const toast = useToast()
     const [error, setError] = useState(0)
     const [finalImageFile, setFinalImageFile] = useState<File | null>(null)
     const [instrFiles, setInstrFiles] = useState<Map<string, File[]>>(new Map())
@@ -282,13 +287,15 @@ export default function ModifyPatternForm({ setModMode, pattern, setPattern }: P
         formData.append('oldInstrImages', JSON.stringify(removedInstrImages))
         formData.append('pattern', JSON.stringify(modPatternObj))
 
-        const res = await fetch('/api/pattern', { method: 'POST', body: formData })
-        if (res.status === 201) {
+        const res = await fetch('/api/pattern', { method: 'POST', body: formData }).catch(() => null)
+        if (res?.status === 201) {
             const data = await res.json()
+            toast('Changes saved')
             dispatch(modifyPattern(data.data))
             setPattern(data.data)
             setModMode(false)
         } else {
+            toast("Couldn't save your changes.", 'error')
             setError((e) => {
                 const next = e + 1
                 if (next >= 3) setTimeout(() => setModMode(false), 1000)
